@@ -29,3 +29,40 @@ def sparse_mx_to_torch_sparse_tensor(sparse_mx):
     values = torch.FloatTensor(sparse_mx.data)
     shape = torch.Size(sparse_mx.shape)
     return torch.sparse.FloatTensor(indices, values, shape)
+
+
+def load_nodes(file_dir, lang_num):
+    paths = [file_dir + "/ent_ids_" + str(i) for i in range(1, lang_num + 1)]
+    node_sets = []
+    for path in paths:
+        node_set = np.genfromtxt(path, dtype=np.int32)[:, 0]
+        node_sets.append(node_set)
+    return node_sets
+
+
+def load_links(file_dir, lang_num):
+    paths = [file_dir + "/triples_" + str(i) for i in range(1, lang_num + 1)]
+    link_sets = []
+    pred_sets = []
+    for path in paths:
+        triples = np.genfromtxt(path, dtype=np.int32)
+        link_set = triples[:, [0, 2]]
+        pred_set = triples[:, 1]
+        link_sets.append(link_set)
+        pred_sets.append(pred_set)
+    return link_sets, pred_sets
+
+
+def load_data(file_dir, lang_num):
+    node_sets = load_nodes(file_dir, lang_num)
+    link_sets, pred_sets = load_links(file_dir, lang_num)
+    all_links = np.concatenate(link_sets)
+    all_nodes = np.concatenate(node_sets)
+
+    num_links = all_links.shape[0]
+    num_nodes = all_nodes.shape[0]
+    adj = sp.coo_matrix((np.ones(num_links * 2),
+                         (np.concatenate([all_links[:, 0], all_links[:, 1]]),
+                          np.concatenate([all_links[:, 1], all_links[:, 0]]))),
+                        shape=(num_nodes, num_nodes), dtype=np.float32)
+    return all_links, all_nodes, adj
