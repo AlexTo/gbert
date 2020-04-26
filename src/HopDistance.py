@@ -1,17 +1,20 @@
 import networkx as nx
-import pickle
 
-class MethodHopDistance(object):
-  
-    def __init__(self, k, nodes, links, batch_dict):
-      self.k = k
-      self.nodes = nodes
-      self.links = links
+
+class HopDistance(object):
+
+    def __init__(self, nodes, links, batch_dict, k):
+        self.k = k
+        self.nodes = nodes
+        self.links = links
+        self.batch_dict = batch_dict
 
     def run(self):
-      nodes = self.nodes
-      links = self.links
-      G = nx.Graph()
+        nodes = self.nodes
+        links = self.links
+        batch_dict = self.batch_dict
+
+        G = nx.Graph()
         G.add_nodes_from(nodes)
         G.add_edges_from(links)
 
