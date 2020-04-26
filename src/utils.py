@@ -31,8 +31,8 @@ def sparse_mx_to_torch_sparse_tensor(sparse_mx):
     return torch.sparse.FloatTensor(indices, values, shape)
 
 
-def load_nodes(file_dir, lang_num):
-    paths = [file_dir + "/ent_ids_" + str(i) for i in range(1, lang_num + 1)]
+def load_nodes(input_dir, lang_num):
+    paths = [input_dir + "/ent_ids_" + str(i) for i in range(1, lang_num + 1)]
     node_sets = []
     for path in paths:
         node_set = np.genfromtxt(path, dtype=np.int32)[:, 0]
@@ -40,8 +40,8 @@ def load_nodes(file_dir, lang_num):
     return node_sets
 
 
-def load_links(file_dir, lang_num):
-    paths = [file_dir + "/triples_" + str(i) for i in range(1, lang_num + 1)]
+def load_links(input_dir, lang_num):
+    paths = [input_dir + "/triples_" + str(i) for i in range(1, lang_num + 1)]
     link_sets = []
     pred_sets = []
     for path in paths:
@@ -52,10 +52,15 @@ def load_links(file_dir, lang_num):
         pred_sets.append(pred_set)
     return link_sets, pred_sets
 
-
-def load_data(file_dir, lang_num):
-    node_sets = load_nodes(file_dir, lang_num)
-    link_sets, pred_sets = load_links(file_dir, lang_num)
+  
+def load_pre_alignments(input_dir):
+    path = input_dir + "/ill_ent_ids"
+    
+    
+    
+def load_data(input_dir, lang_num):
+    node_sets = load_nodes(input_dir, lang_num)
+    link_sets, pred_sets = load_links(input_dir, lang_num)
     all_links = np.concatenate(link_sets)
     all_nodes = np.concatenate(node_sets)
 

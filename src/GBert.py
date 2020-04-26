@@ -31,5 +31,5 @@ class GBert(BertPreTrainedModel):
         self.embeddings = BertEmbeddings(config)
         self.encoder = BertEncoder(config)
 
-    def forward(self, x):
-        pass
+    def forward(self, ):
+        

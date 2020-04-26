@@ -11,8 +11,8 @@ from src.utils import *
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--file_dir", type=str, default="data/DBP15K/zh_en", required=False,
-                        help="input dataset file directory, ('data/DBP15K/zh_en', 'data/DWY100K/dbp_wd')")
+    parser.add_argument("--dataset", type=str, default="DBP15K/zh_en", required=False,
+                        help="Dataset directory: 'DBP15K/zh_en', 'DWY100K/dbp_wd', etc..")
     parser.add_argument("--c", type=float, default=0.15, help="c factor for intimacy matrix S calculation")
     parser.add_argument("--cuda", action="store_true", default=True, help="Whether to use cuda")
     parser.add_argument("--lang_num", type=int, default=2, help="number of dataset languages, for e.g. 2 if fr and en")
@@ -26,14 +26,14 @@ def parse_args():
 
 def main():
     args = parse_args()
-    file_dir = args.file_dir
-    output_dir = file_dir.replace('data', 'outputs')
+    input_dir = f"data/{args.dataset}"
+    output_dir = f"outputs/{args.dataset}"
     num_lang = args.lang_num
     c = args.c
 
     device = torch.device("cuda" if args.cuda and torch.cuda.is_available() else "cpu")
 
-    all_links, all_nodes, adj = load_data(file_dir, num_lang)
+    all_links, all_nodes, adj = load_data(input_dir, num_lang)
     adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
     norm_adj = adj_normalize(adj + sp.eye(adj.shape[0]))
 
@@ -48,12 +48,12 @@ def main():
                 pickle.dump(eigen_adj, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         for k in [7]:
-            if os.path.exists(f"{output_dir}/batching/batch_{k}.bin"):
-                print(f"batch_{k}.bin exists. Skipping")
+            if os.path.exists(f"{output_dir}/batching/batch_dict_{k}.bin"):
+                print(f"batch_dict_{k}.bin exists. Skipping")
                 continue
             graph_batching = GraphBatching(all_nodes, eigen_adj, k)
-            batches = graph_batching.run()
-            with open_file(f"{output_dir}/batching", f"batch_{k}.bin", "wb") as f:
+            batch_dict_ = graph_batching.run()
+            with open_file(f"{output_dir}/batching", f"batch_dict_{k}.bin", "wb") as f:
                 pickle.dump(batches, f)
 
     if args.wl:
@@ -71,7 +71,7 @@ def main():
             if os.path.exists(f"{output_dir}/hop/hop_dict_{k}.bin"):
                 print(f"hop_dict_{k}.bin exists. Skipping")
                 continue
-            with open(f"{output_dir}/batching/batch_{k}.bin", 'rb') as f:
+            with open(f"{output_dir}/batching/batch_dict_{k}.bin", 'rb') as f:
                 batches = pickle.load(f)
             hop_distance = HopDistance(all_nodes, all_links, batches, k)
             hop_dict = hop_distance.run()

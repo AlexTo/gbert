@@ -21,8 +21,9 @@ class HopDistance(object):
 
         hop_dict = {}
         pbar = trange(0, len(batch_dict), desc="Computing hop distance")
+        keys = list(batch_dict.keys())
         for i in pbar:
-            node = batch_dict.keys()[i]
+            node = keys[i]
             if node not in hop_dict:
                 hop_dict[node] = {}
             for neighbor, score in batch_dict[node]:
