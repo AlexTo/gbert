@@ -48,6 +48,8 @@ def main():
                 pickle.dump(eigen_adj, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         for k in [7]:
+            if os.path.exists(f"{output_dir}/batching/batch_{k}.bin"):
+                continue
             graph_batching = GraphBatching(all_nodes, eigen_adj, k)
             batches = graph_batching.run()
             with open_file(f"{output_dir}/batching", f"batch_{k}.bin", "wb") as f:
@@ -62,6 +64,8 @@ def main():
 
     if args.hop_distance:
         for k in [7]:
+            if os.path.exists(f"{output_dir}/hop/hop_dict_{k}.bin"):
+                continue
             with open(f"{output_dir}/batching/batch_{k}.bin", 'rb') as f:
                 batches = pickle.load(f)
             hop_distance = HopDistance(all_nodes, all_links, batches, k)
