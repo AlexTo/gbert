@@ -2,18 +2,23 @@ import argparse
 from random import random
 from torch import optim
 from models import GBertConfig, GBert
+from torch.utils.data import DataLoader
+
 from src.utils import *
 from src.GBert import *
 from src.GBertDataset import *
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="DBP15K/zh_en", required=False,
                         help="Dataset directory: 'DBP15K/zh_en', 'DWY100K/dbp_wd', etc..")
     parser.add_argument("--lang_num", type=int, default=2, help="number of dataset languages, for e.g. 2 if fr and en")
+    parser.add_argument("--k", type=int, default=7, help="number of k neighbors")
+    parser.add_argument("--batch_size", type=int, default=256, help="Batch size")
     parser.add_argument("--train_split", type=float, default=0.3, help="training set split")
     parser.add_argument("--cuda", action="store_true", default=True, help="whether to use cuda or not")
-    parser.add_argument("--entity_embedding_dim", type=int, default=128, help="dimension of the entity embedding layer")
+    parser.add_argument("--node_embedding_dim", type=int, default=128, help="dimension of the node embedding layer")
     parser.add_argument("--rel_embedding_dim", type=int, default=128, help="dimension of the relation embedding layer")
     parser.add_argument("--hidden_dim", type=int, default=128, help="dimension of the hidden layer")
     parser.add_argument("--lr", type=float, default=0.005, help="initial learning rate")
@@ -30,36 +35,40 @@ def main():
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
+    input_dir = f"data/{args.dataset}"
+    output_dir = f"outputs/{args.dataset}"
+    num_lang = args.lang_num
+
     if args.cuda and torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
     device = torch.device("cuda" if args.cuda and torch.cuda.is_available() else "cpu")
 
-    all_links, all_nodes, adj = load_data(input_dir, num_lang)
-    
+    all_links, all_nodes, all_rels, pre_alignments, adj = load_data(input_dir, num_lang)
+
     np.random.shuffle(pre_alignments)
     train_pre_alignments = np.array(pre_alignments[:int(len(pre_alignments) // 1 * args.train_split)], dtype=np.int32)
     test_pre_alignments = np.array(pre_alignments[int(len(pre_alignments) // 1 * args.train_split):], dtype=np.int32)
 
-    ent_num = len(all_nodes)
-    rel_num = len(pred_subjs)
-    
-    config = GBertConfig(ent_num, rel_num, args.entity_embedding_dim, args.entity_embedding_dim)
+    node_num = len(all_nodes)
+    rel_num = len(np.unique(all_rels))
+
+    config = GBertConfig(node_num, rel_num, args.node_embedding_dim, args.rel_embedding_dim)
 
     g_bert = GBert(config).to(device)
+
+    dataset = GBertDataset(input_dir, output_dir, num_lang, args.k)
+    loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=2)
 
     optimizer = optim.Adagrad(g_bert.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     for epoch in range(args.epochs):
-        
         g_bert.train()
-        optimizer.zero_grad()
-        output = g_bert(entity_indices)
-
-        # Loss function, cost function goes here
-
-        optimizer.step()
-
-        # Test model and print some results here
+        for neighbors, wl, hops, pos_ids in loader:
+            neighbors, wl, hops, pos_ids = neighbors.to(device), wl.to(device), hops.to(device), pos_ids.to(device)
+            optimizer.zero_grad()
+            output = g_bert(neighbors, wl, hops, pos_ids)
+            # Loss function, cost function goes here
+            optimizer.step()
 
 
 if __name__ == "__main__":

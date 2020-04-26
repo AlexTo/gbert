@@ -33,7 +33,7 @@ def main():
 
     device = torch.device("cuda" if args.cuda and torch.cuda.is_available() else "cpu")
 
-    all_links, all_nodes, adj = load_data(input_dir, num_lang)
+    all_links, all_nodes, all_rels, pre_alignments, adj = load_data(input_dir, num_lang)
     adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
     norm_adj = adj_normalize(adj + sp.eye(adj.shape[0]))
 
@@ -44,7 +44,7 @@ def main():
                 eigen_adj = pickle.load(f)
         else:
             eigen_adj = c * inv((sp.eye(adj.shape[0]) - (1 - c) * adj_normalize(adj)).toarray())
-            with open_file(f"{output_dir}/eigen_adj.bin", 'wb') as f:
+            with open_file(output_dir, "eigen_adj.bin", 'wb') as f:
                 pickle.dump(eigen_adj, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         for k in [7]:
@@ -52,9 +52,9 @@ def main():
                 print(f"batch_dict_{k}.bin exists. Skipping")
                 continue
             graph_batching = GraphBatching(all_nodes, eigen_adj, k)
-            batch_dict_ = graph_batching.run()
+            batch_dict = graph_batching.run()
             with open_file(f"{output_dir}/batching", f"batch_dict_{k}.bin", "wb") as f:
-                pickle.dump(batches, f)
+                pickle.dump(batch_dict, f)
 
     if args.wl:
         # should we include pre-alignments in this process?

@@ -43,26 +43,31 @@ def load_nodes(input_dir, lang_num):
 def load_links(input_dir, lang_num):
     paths = [input_dir + "/triples_" + str(i) for i in range(1, lang_num + 1)]
     link_sets = []
-    pred_sets = []
+    rel_sets = []
     for path in paths:
         triples = np.genfromtxt(path, dtype=np.int32)
         link_set = triples[:, [0, 2]]
         pred_set = triples[:, 1]
         link_sets.append(link_set)
-        pred_sets.append(pred_set)
-    return link_sets, pred_sets
+        rel_sets.append(pred_set)
+    return link_sets, rel_sets
 
-  
+
 def load_pre_alignments(input_dir):
     path = input_dir + "/ill_ent_ids"
-    
-    
-    
+    pre_alignments = np.genfromtxt(path, dtype=np.int32)
+    return pre_alignments
+
+
 def load_data(input_dir, lang_num):
     node_sets = load_nodes(input_dir, lang_num)
-    link_sets, pred_sets = load_links(input_dir, lang_num)
+    link_sets, rel_sets = load_links(input_dir, lang_num)
+    pre_alignments = load_pre_alignments(input_dir)
+
     all_links = np.concatenate(link_sets)
     all_nodes = np.concatenate(node_sets)
+
+    all_rels = np.concatenate(rel_sets)
 
     num_links = all_links.shape[0]
     num_nodes = all_nodes.shape[0]
@@ -70,4 +75,4 @@ def load_data(input_dir, lang_num):
                          (np.concatenate([all_links[:, 0], all_links[:, 1]]),
                           np.concatenate([all_links[:, 1], all_links[:, 0]]))),
                         shape=(num_nodes, num_nodes), dtype=np.float32)
-    return all_links, all_nodes, adj
+    return all_links, all_nodes, all_rels, pre_alignments, adj

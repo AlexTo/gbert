@@ -12,7 +12,7 @@ class GraphBatching(object):
         nodes = self.nodes
 
         user_top_k_neighbor_intimacy_dict = {}
-        pbar = trange(0, len(nodes), desc=f"Graph batching")
+        pbar = trange(0, len(nodes), desc=f"Computing graph batching")
         for i in pbar:
             node_id = nodes[i]
             s = eigen_adj[node_id]
