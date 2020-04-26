@@ -1,3 +1,6 @@
+from tqdm import trange
+
+
 class GraphBatching(object):
     def __init__(self, nodes, eigen_adj, k):
         self.k = k
@@ -9,7 +12,9 @@ class GraphBatching(object):
         nodes = self.nodes
 
         user_top_k_neighbor_intimacy_dict = {}
-        for node_id in nodes:
+        pbar = trange(0, len(nodes), desc=f"Graph batching")
+        for i in pbar:
+            node_id = nodes[i]
             s = eigen_adj[node_id]
             s[node_id] = -1000.0
             top_k_neighbor_index = s.argsort()[-self.k:][::-1]

@@ -1,4 +1,5 @@
 import networkx as nx
+from tqdm import trange
 
 
 class HopDistance(object):
@@ -19,8 +20,11 @@ class HopDistance(object):
         G.add_edges_from(links)
 
         hop_dict = {}
-        for node in batch_dict:
-            if node not in hop_dict: hop_dict[node] = {}
+        pbar = trange(0, len(batch_dict), desc="Computing hop distance")
+        for i in pbar:
+            node = batch_dict.keys()[i]
+            if node not in hop_dict:
+                hop_dict[node] = {}
             for neighbor, score in batch_dict[node]:
                 try:
                     hop = nx.shortest_path_length(G, source=node, target=neighbor)

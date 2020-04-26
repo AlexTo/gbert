@@ -49,6 +49,7 @@ def main():
 
         for k in [7]:
             if os.path.exists(f"{output_dir}/batching/batch_{k}.bin"):
+                print(f"batch_{k}.bin exists. Skipping")
                 continue
             graph_batching = GraphBatching(all_nodes, eigen_adj, k)
             batches = graph_batching.run()
@@ -57,14 +58,18 @@ def main():
 
     if args.wl:
         # should we include pre-alignments in this process?
-        wl_node_coloring = WLNodeColoring(all_nodes, all_links)
-        wl = wl_node_coloring.run()
-        with open_file(f"{output_dir}/wl", "wl.bin", "wb") as f:
-            pickle.dump(wl, f)
+        if not os.path.exists(f"{output_dir}/wl/wl.bin"):
+            wl_node_coloring = WLNodeColoring(all_nodes, all_links)
+            wl = wl_node_coloring.run()
+            with open_file(f"{output_dir}/wl", "wl.bin", "wb") as f:
+                pickle.dump(wl, f)
+        else:
+            print("WL file exists. Skipping")
 
     if args.hop_distance:
         for k in [7]:
             if os.path.exists(f"{output_dir}/hop/hop_dict_{k}.bin"):
+                print(f"hop_dict_{k}.bin exists. Skipping")
                 continue
             with open(f"{output_dir}/batching/batch_{k}.bin", 'rb') as f:
                 batches = pickle.load(f)

@@ -1,4 +1,5 @@
 import hashlib
+from tqdm import trange
 
 
 class WLNodeColoring(object):
@@ -29,7 +30,9 @@ class WLNodeColoring(object):
         iteration_count = 1
         while True:
             new_color_dict = {}
-            for node in nodes:
+            pbar = trange(0, len(nodes), desc=f"Computing WL iteration {iteration_count}")
+            for i in pbar:
+                node = nodes[i]
                 neighbors = self.node_neighbor_dict[node]
                 neighbor_color_list = [self.node_color_dict[neb] for neb in neighbors]
                 color_string_list = [str(self.node_color_dict[node])] + sorted(
