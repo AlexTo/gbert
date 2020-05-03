@@ -1,6 +1,6 @@
 from pytorch_transformers import PretrainedConfig
 from torch import nn
-from transformers.modeling_bert import BertPreTrainedModel
+from transformers.modeling_bert import BertPreTrainedModel, BertEncoder, BertPooler
 
 
 class GBertConfig(PretrainedConfig):
@@ -48,11 +48,7 @@ class BertEmbeddings(nn.Module):
         embeddings = neighbors_embedding + wl_embedding + hop_embedding + pos_embedding
         embeddings = self.layer_norm(embeddings)
         embeddings = self.dropout(embeddings)
-
-
-class BertEncoder(nn.Module):
-    def __init__(self, config):
-        super(BertEncoder, self).__init__()
+        return embeddings
 
 
 class GBert(BertPreTrainedModel):
@@ -60,6 +56,12 @@ class GBert(BertPreTrainedModel):
         super(GBert, self).__init__(config)
         self.embeddings = BertEmbeddings(config)
         self.encoder = BertEncoder(config)
+        self.pooler = BertPooler(config)
 
-    def forward(self, neighbors, wl, hops, pos_ids):
-        embeddings = self.embeddings(neighbors, wl, hops, pos_ids)
+    def forward(self, neighbors, wl, hops, pos_ids, head_mask=None):
+        embedding_outputs = self.embeddings(neighbors, wl, hops, pos_ids)
+        encoder_outputs = self.encoder(embedding_outputs, head_mask=head_mask)
+        sequence_output = encoder_outputs[0]
+        pooler_output = self.pooler(sequence_output)
+        outputs = (sequence_output, pooler_output,) + encoder_outputs[1:]
+        return outputs
