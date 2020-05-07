@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import os
-
+import torch.nn.functional as f
 import torch
 
 
@@ -31,48 +31,22 @@ def sparse_mx_to_torch_sparse_tensor(sparse_mx):
     return torch.sparse.FloatTensor(indices, values, shape)
 
 
-def load_nodes(input_dir, lang_num):
-    paths = [input_dir + "/ent_ids_" + str(i) for i in range(1, lang_num + 1)]
-    node_sets = []
-    for path in paths:
-        node_set = np.genfromtxt(path, dtype=np.int32)[:, 0]
-        node_sets.append(node_set)
-    return node_sets
+def target_to_sparse_adj(targets):
+    adj = targets.dot(targets.T)
+    return adj, adj
 
 
-def load_links(input_dir, lang_num):
-    paths = [input_dir + "/triples_" + str(i) for i in range(1, lang_num + 1)]
-    link_sets = []
-    rel_sets = []
-    for path in paths:
-        triples = np.genfromtxt(path, dtype=np.int32)
-        link_set = triples[:, [0, 2]]
-        pred_set = triples[:, 1]
-        link_sets.append(link_set)
-        rel_sets.append(pred_set)
-    return link_sets, rel_sets
-
-
-def load_pre_alignments(input_dir):
-    path = input_dir + "/ill_ent_ids"
-    pre_alignments = np.genfromtxt(path, dtype=np.int32)
-    return pre_alignments
-
-
-def load_data(input_dir, lang_num):
-    node_sets = load_nodes(input_dir, lang_num)
-    link_sets, rel_sets = load_links(input_dir, lang_num)
-    pre_alignments = load_pre_alignments(input_dir)
-
-    all_links = np.concatenate(link_sets)
-    all_nodes = np.concatenate(node_sets)
-
-    all_rels = np.concatenate(rel_sets)
-
-    num_links = all_links.shape[0]
-    num_nodes = all_nodes.shape[0]
-    adj = sp.coo_matrix((np.ones(num_links * 2),
-                         (np.concatenate([all_links[:, 0], all_links[:, 1]]),
-                          np.concatenate([all_links[:, 1], all_links[:, 0]]))),
-                        shape=(num_nodes, num_nodes), dtype=np.float32)
-    return all_links, all_nodes, all_rels, pre_alignments, adj
+def batched_target_to_adj(target):
+    batch_size = target.size()[0]
+    n = target.size()[1]
+    s_target = torch.reshape(target, [batch_size * n])
+    zero = torch.zeros(batch_size * n)
+    z_target = torch.where(s_target < 0, s_target, zero)
+    indices = torch.nonzero(z_target, as_tuple=True)[0]
+    s_mask_adj = torch.ones((batch_size * n, n))
+    s_mask_adj[indices] = 0
+    mask_adj = torch.reshape(s_mask_adj, [batch_size, n, n])
+    mask_adj_r = torch.rot90(mask_adj, 1, [1, 2])
+    adj = (mask_adj.bool() & mask_adj_r.bool() & torch.logical_not(
+        torch.diag_embed(torch.ones((batch_size, n))).bool())).float()
+    return adj
