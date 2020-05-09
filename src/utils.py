@@ -1,8 +1,16 @@
+import os
+
 import numpy as np
 import scipy.sparse as sp
-import os
-import torch.nn.functional as f
 import torch
+
+
+def torch_adj_normalize(mx):
+    row_sum = torch.sum(mx, dim=1)
+    r_inv = row_sum.pow(-0.5)
+    r_inv[torch.isinf(r_inv)] = 0
+    r_mat_inv = torch.diag(r_inv)
+    return r_mat_inv.mm(mx).mm(r_mat_inv)
 
 
 def adj_normalize(mx):
@@ -31,15 +39,10 @@ def sparse_mx_to_torch_sparse_tensor(sparse_mx):
     return torch.sparse.FloatTensor(indices, values, shape)
 
 
-def target_to_sparse_adj(targets):
-    adj = targets.dot(targets.T)
-    return adj, adj
-
-
-def batched_target_to_adj(target):
-    batch_size = target.size()[0]
-    n = target.size()[1]
-    s_target = torch.reshape(target, [batch_size * n])
+def batched_target_to_adj(targets):
+    batch_size = targets.size()[0]
+    n = targets.size()[1]
+    s_target = torch.reshape(targets, [batch_size * n])
     zero = torch.zeros(batch_size * n)
     z_target = torch.where(s_target < 0, s_target, zero)
     indices = torch.nonzero(z_target, as_tuple=True)[0]
@@ -50,3 +53,7 @@ def batched_target_to_adj(target):
     adj = (mask_adj.bool() & mask_adj_r.bool() & torch.logical_not(
         torch.diag_embed(torch.ones((batch_size, n))).bool())).float()
     return adj
+
+
+def batched_adj_to_freq(adj):
+    return torch.sum(adj, dim=0)
