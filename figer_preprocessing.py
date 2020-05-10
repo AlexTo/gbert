@@ -89,13 +89,12 @@ def process_data(input_dir, output_dir, num_types, ent_to_ind, type_to_ind, embe
         for line in f:
             split = line.strip().split()
             entity = split[0].strip()
+            entities.append(entity)
             if entity in ent_to_ind:
                 feature = embeddings[ent_to_ind[entity]]
-                entities.append(ent_to_ind[entity])
             else:
                 if ds != "train":
                     feature = np.zeros(feature_dim)
-                    entities.append(-1)
                 else:
                     continue
             if ds == 'test':
@@ -106,7 +105,6 @@ def process_data(input_dir, output_dir, num_types, ent_to_ind, type_to_ind, embe
 
     mlb = MultiLabelBinarizer(range(num_types))
     targets = mlb.fit_transform(targets)
-
     with open_file(f'{output_dir}', f'{ds}_entities.bin', 'wb') as f:
         pickle.dump(entities, f, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -118,6 +116,7 @@ def process_data(input_dir, output_dir, num_types, ent_to_ind, type_to_ind, embe
 
     if not os.path.exists(f"{output_dir}/type_adj.bin") and ds == "train":
         targets = torch.tensor(targets, dtype=torch.float)
+        targets[targets == 0] = -1
         type_adj = batched_target_to_adj(targets)
         type_adj = batched_adj_to_freq(type_adj)
         type_adj[type_adj > 0] = 1
