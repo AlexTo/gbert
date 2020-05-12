@@ -19,6 +19,7 @@ from src.utils import open_file
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--input_dir", type=str, default="data/FIGER", required=False)
     parser.add_argument("--output_dir", type=str, default="outputs/FIGER", required=False)
     parser.add_argument("--batch_size", type=int, default=102, help="Batch size")
     parser.add_argument("--cuda", action="store_true", default=True, help="whether to use cuda or not")
@@ -87,7 +88,8 @@ def train():
         "learning_rate": args.lr,
         "epochs": args.epochs
     }
-    neptune.create_experiment(name='Switch to Adagrad, update learning rate', params=params)
+    neptune.create_experiment(name='Bring back linear for entity embedding, remove type embedding from Fasttext',
+                              params=params)
 
     n_units = [int(x) for x in args.hidden_units.strip().split(",")]
     n_heads = [int(x) for x in args.heads.strip().split(",")]
@@ -96,7 +98,7 @@ def train():
         type_adj = pickle.load(f)
 
     num_types = type_adj.shape[0]
-    type_adj = torch.tensor(type_adj).to_sparse()
+    type_adj = torch.tensor(type_adj).to_sparse().to(device)
     train_set = FigerDataset(args.output_dir, "train")
     train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=2)
 
@@ -104,6 +106,8 @@ def train():
     dev_loader = DataLoader(dev_set, batch_size=args.batch_size, num_workers=2)
 
     type_ids = torch.tensor(np.arange(num_types)).to(device)
+    type_emb = np.load(f'{args.input_dir}/label_emb_fasttext_102_300.npy')
+    type_emb = torch.tensor(type_emb).to(device)
 
     model = FIGAT(feature_dim=args.feature_dim, type_ids=type_ids, type_adj=type_adj,
                   n_units=n_units, n_heads=n_heads, dropout=args.dropout, attn_dropout=args.attn_dropout,
@@ -142,6 +146,8 @@ def test():
     num_types = type_adj.shape[0]
     type_ids = torch.tensor(np.arange(num_types)).to(device)
     type_adj = torch.tensor(type_adj).to_sparse()
+    type_emb = np.load(f'{args.input_dir}/label_emb_fasttext_102_300.npy')
+    type_emb = torch.tensor(type_emb)
 
     dev_set = FigerDataset(args.output_dir, "dev")
     dev_loader = DataLoader(dev_set, batch_size=args.batch_size, num_workers=2)
@@ -159,5 +165,5 @@ def test():
 
 
 if __name__ == "__main__":
-    # train()
-    test()
+    train()
+    # test()
